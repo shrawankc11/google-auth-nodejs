@@ -20,6 +20,11 @@ interface iUser {
     email: string;
 }
 
+/**
+ *
+ * @param tokens
+ * @returns {user object containing email, name, goggle id and other user credentials}
+ */
 async function getUserInfo(tokens: Credentials) {
     // get user profile and email from user scope
     return await axios
@@ -59,23 +64,30 @@ async function main() {
         if (pathname === '/') {
             //redirect user to google sign in page
             res.writeHead(301, { Location: authUrl });
-        } else if (pathname === '/tokensignin') {
+        } else if (req.url && pathname === '/tokensignin') {
             //extract seach params from url
-            const q = new url.URL(req.url || '', rOOTURI).searchParams;
+            const q = new url.URL(req.url, rOOTURI).searchParams;
+
             //get auth code from query string
-            const code = q.get('code') || '';
+            const code = q.get('code');
+
+            //handle error for invalid oauth credentials
+            if (!code) {
+                throw new Error('Error' + q.get('error'));
+            }
+
             //generate tokens after getting auth code
             const r = await oauth2Client.getToken(code);
 
             //set credentials for this client => later used
             oauth2Client.setCredentials(r.tokens);
 
-            //get token info for for validating id tokens if necessary
+            //get token info for for validating id_token
             const tokenInfo = await oauth2Client.getTokenInfo(
                 oauth2Client.credentials.access_token as string
             );
 
-            //use this tokeninfo to fetch user profile or email and authenticate user
+            //use credentials that contains tokens to access user info
             const user = await getUserInfo(oauth2Client.credentials);
 
             /**
@@ -84,16 +96,20 @@ async function main() {
              */
             const client = clients.get(user.id);
             if (client) {
-                //create user sesssion if user already exists in db
-                //issue session or jwt token here >>>
+                /**
+                 * create user sesssion if user already exists in db
+                 * issue session or jwt token here >>>
+                 */
                 res.write(
                     `<h1>logged in and session created with id ${client.id}!!</h1>`
                 );
             } else {
-                //save user info use db in prod >>>
+                /**
+                 * save user info, use db in prod >>>
+                 * redirect user to google login
+                 */
                 clients.set(user.id, { email: user.email, id: user.id });
                 console.log('user added to db!');
-                //redirect user to google login
                 res.writeHead(301, { Location: authUrl });
             }
         } else {
