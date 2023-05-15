@@ -1,2 +1,3 @@
 # google-auth-nodejs
-## passport free google oAuth in less than 100 lines
+
+## Passport.js free google authentication using offical google NodeJS auth library(less than 100 lines).
