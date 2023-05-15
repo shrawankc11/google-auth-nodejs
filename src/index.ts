@@ -6,6 +6,7 @@ import { config } from 'dotenv';
 import { OAuth2Client, Credentials } from 'google-auth-library';
 
 const pORT = process.env.PORT || 8080;
+const rOOTURI = `http://localhost:${pORT}`;
 config({ path: `${__dirname}/../.env` });
 
 /**
@@ -39,7 +40,7 @@ async function main() {
     const oauth2Client = new OAuth2Client(
         process.env.client_id,
         process.env.client_secret,
-        keys.web.redirect_uris[1] || 'http://localhost:8080/tokensignin'
+        keys.web.redirect_uris[1]
     );
 
     //generate auth Url
@@ -54,14 +55,13 @@ async function main() {
     console.log(authUrl);
     //create server
     http.createServer(async (req, res) => {
-        const { pathname } = new url.URL(`http://localhost:8080${req.url}`);
+        const { pathname } = new url.URL(`${rOOTURI}${req.url}`);
         if (pathname === '/') {
             //redirect user to google sign in page
             res.writeHead(301, { Location: authUrl });
         } else if (pathname === '/tokensignin') {
             //extract seach params from url
-            const q = new url.URL(req.url || '', 'http://localhost:8080')
-                .searchParams;
+            const q = new url.URL(req.url || '', rOOTURI).searchParams;
             //get auth code from query string
             const code = q.get('code') || '';
             //generate tokens after getting auth code
